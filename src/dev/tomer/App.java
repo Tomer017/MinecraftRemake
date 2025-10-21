@@ -1,5 +1,9 @@
 package dev.tomer;
 
+import dev.tomer.utility.Camera;
+import dev.tomer.utility.Screen;
+import dev.tomer.utility.Texture;
+
 import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.image.BufferStrategy;
@@ -12,10 +16,16 @@ import javax.swing.*;
 public class App extends JFrame implements Runnable {
     @Serial
     private static final long serialVersionUID = 1L;
+    public Screen screen;
     private Thread thread;
+    public Camera camera;
     private boolean running;
     private BufferedImage image;
+    public int mapWidth = 15;
+    public int mapHeight = 15;
     public int[] pixels;
+    public ArrayList<Texture> textures;
+
     public static int[][] map =
             {
                     {1,1,1,1,1,1,1,1,2,2,2,2,2,2,2},
@@ -38,19 +48,33 @@ public class App extends JFrame implements Runnable {
     public App() {
         this.thread = new Thread(this);
         image = new BufferedImage(800, 600, BufferedImage.TYPE_INT_RGB);
+        textures = new ArrayList<Texture>();
         pixels = ((DataBufferInt)image.getRaster().getDataBuffer()).getData();
+        camera = new Camera(4.5, 4.5, 1, 0, 0, -.66);
+        screen = new Screen(map, textures, 800, 600);
+        addKeyListener(camera);
+        System.out.println("URL = " + dev.tomer.utility.Texture.class.getResource("/GrassBlock.png"));
+        System.out.println("Classpath = " + System.getProperty("java.class.path"));
+        loadTextures();
         initFrame();
         start();
     }
 
     public void initFrame() {
-        setSize(1920, 1080);
+        setSize(800, 600);
         setTitle("Minecraft Remake");
         setResizable(false);
         setBackground(Color.BLACK);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         setVisible(true);
+    }
+
+    public void loadTextures() {
+        textures.add(Texture.grass);
+        textures.add(Texture.cobblestone);
+        textures.add(Texture.oakLog);
+        textures.add(Texture.oakPlanks);
     }
 
     private synchronized void start() {
@@ -64,7 +88,7 @@ public class App extends JFrame implements Runnable {
         try{
             thread.join();
         } catch (InterruptedException e){
-            e.printStackTrace();
+            throw new RuntimeException(e);
         }
     }
 
@@ -82,9 +106,6 @@ public class App extends JFrame implements Runnable {
         bs.show();
     }
 
-    /**
-     * Runs this operation.
-     */
     @Override
     public void run() {
         long lastTime = System.nanoTime();
@@ -99,6 +120,8 @@ public class App extends JFrame implements Runnable {
 
             while (delta >= 1){
                 // handles all logic restricted time
+                screen.update(camera, pixels);
+                camera.update(map);
                 delta--;
             }
             render();
